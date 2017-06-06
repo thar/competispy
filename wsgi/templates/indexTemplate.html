@@ -1,0 +1,226 @@
+## -*- coding: utf-8 -*-
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN""http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" dir="ltr" lang="es-ES">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+    <title>Lobotomizador de pruebas by Thar v.0.3</title>
+    <meta name="viewport" content="initial-scale=1,maximum-scale=1">
+    <script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.8.3/jquery.min.js"></script>
+    <script src="//ajax.googleapis.com/ajax/libs/jqueryui/1.10.4/jquery-ui.min.js"></script>
+    <link rel="stylesheet" href="https://ajax.googleapis.com/ajax/libs/jquerymobile/1.4.3/jquery.mobile.min.css"/>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquerymobile/1.4.3/jquery.mobile.min.js"></script>
+    <script type="text/javascript">
+        $(document).ready(function () {
+            $('#buscar').button()
+                .click(function (event) {
+                    $.get("search",
+                        {
+                            distancia: $("#distancia").val(),
+                            estilo: $("#estilo").val(),
+                            genero: $("#genero").val(),
+                            categoria: $("#categoria").val(),
+                            campeonato: $("#campeonato").val()
+                        },
+                        function (data) {
+                            $("#result-table").empty().html(data).enhanceWithin().table("refresh");
+                        },
+                        "html"
+                    );
+                });
+            $('#buscarNombre').button()
+                .click(function (event) {
+                    if (!$('#licenciaActiva').prop('checked')) {
+                        $.get("searchNombre",
+                            {nombre: $("#inputNadadorLicencia").val(), campeonato: $("#campeonato").val()},
+                            function (data) {
+                                $("#result-table").empty().html(data).enhanceWithin().table("refresh");
+                            },
+                            "html"
+                        );
+                    } else {
+                        $.get("searchLicencia",
+                            {licencia: $("#inputNadadorLicencia").val(), campeonato: $("#campeonato").val()},
+                            function (data) {
+                                $("#result-table").empty().html(data).enhanceWithin().table("refresh");
+                            },
+                            "html"
+                        );
+                    }
+                });
+            $('#avanBuscar').button()
+                .click(function (event) {
+                    $.get("searchAvanzado",
+                        {
+                            club: $("#avanClub").val(),
+                            distancia: $("#avanDistancia").val(),
+                            estilo: $("#avanEstilo").val(),
+                            genero: $("#avanGenero").val(),
+                            anoInicial: $("#avanAnoIni").val(),
+                            anoFinal: $("    #avanAnoFin").val(),
+                            campeonato: $("#campeonato").val()
+                        },
+                        function (data) {
+                            $("#result-table").empty().html(data).enhanceWithin().table("refresh");
+                        },
+                        "html"
+                    );
+                });
+
+        });
+    </script>
+    <style>
+        .cnalcobendas {
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+<div data-role="tabs">
+    <div data-role="navbar">
+        <ul>
+            <li><a class="ui-btn-active" href="#busquedaPruebas">Pruebas</a></li>
+            <li><a href="#busquedaNadador">Nadador</a></li>
+            <li><a href="#busquedaAvanzada">Avanzada</a></li>
+            <li><a href="#opciones">Opciones</a></li>
+        </ul>
+    </div>
+    <div id="opciones" class="ui-content">
+        <div>
+            <div class="ui-field-contain">
+                <label for="campeonato">Campeonato:</label>
+                <select id="campeonato">
+                    <option value="XIII CTO. ANDALUCIA OPEN DE VERANO MASTER">XIII cto. Andalucía Open Máster Verano
+                    </option>
+                    <option value="cto. españa invierno master 2017">Cto. España Invierno Master 2017</option>
+                    <option value="cto. españa verano master 2016">Cto. España Verano Master 2016</option>
+                    <option value="cto. madrid verano master 2016">Cto. Madrid Verano Master 2016</option>
+                    <option value="XII CTO. ANDALUCÍA OPEN MÁSTER VERANO">XII cto. Andalucía Open Máster Verano</option>
+                </select>
+            </div>
+        </div>
+    </div>
+    <div id="busquedaPruebas" class="ui-content">
+        <div>
+            <div class="ui-field-contain">
+                <label for="distancia">Distancia:</label>
+                <select id="distancia">
+                    <option value="50">50m</option>
+                    <option value="100">100m</option>
+                    <option value="200">200m</option>
+                    <option value="400">400m</option>
+                    <option value="800">800m</option>
+                    <option value="1500">1500m</option>
+                    <option value="4x50">4x50m</option>
+                </select>
+            </div>
+            <div class="ui-field-contain">
+                <label for="estilo">Estilo:</label>
+                <select id="estilo">
+                    <option value="MARIPOSA">Mariposa</option>
+                    <option value="ESPALDA">Espalda</option>
+                    <option value="BRAZA">Braza</option>
+                    <option value="LIBRE">Libre</option>
+                    <option value="ESTILOS">Estilos</option>
+                </select>
+            </div>
+            <div class="ui-field-contain">
+                <label for="genero">Genero:</label>
+                <select id="genero">
+                    <option value="MASCULINO">Masculino</option>
+                    <option value="FEMENINO">Femenino</option>
+                    <option value="MIXTO">Mixto</option>
+                </select>
+            </div>
+            <div class="ui-field-contain">
+                <label for="categoria">Categoria:</label>
+                <select id="categoria">
+                    % for cat in range(20, 100, 5):
+                    <option value="${cat}">${cat}</option>
+                    % endfor
+                    % for cat in [80, 100, 120, 160, 240, 280]:
+                    <option value="${cat}">+${cat}</option>
+                    % endfor
+                </select>
+            </div>
+            <button id="buscar">Buscar</button>
+        </div>
+    </div>
+    <div id="busquedaNadador" class="ui-content">
+        <div class="ui-field-contain">
+            <label for="licenciaActiva">Busqueda por licencia:</label>
+            <input type="checkbox" data-role="flipswitch" name="licenciaActiva" id="licenciaActiva"/>
+        </div>
+        <div class="ui-field-contain">
+            <fieldset data-role="controlgroup" data-type="horizontal">
+                <label for="inputNadadorLicencia" class="ui-hidden-accessible">Nombre o licencia:</label>
+                <input type="text" name="inputNadadorLicencia" id="inputNadadorLicencia" placeholder="Nombre o licencia"
+                       value=""/>
+            </fieldset>
+        </div>
+        <button id="buscarNombre">Buscar</button>
+    </div>
+    <div id="busquedaAvanzada" class="busquedaAvanzada" class="ui-content">
+        <div>
+            <label for="avanClub" class="ui-hidden-accessible">Club:</label>
+            <input type="text" name="avanClub" id="avanClub" placeholder="Club" value=""/>
+            <div class="ui-field-contain">
+                <label for="avanDistancia">Distancia:</label>
+                <select id="avanDistancia">
+                    <option value="0">Todas</option>
+                    <option value="50">50m</option>
+                    <option value="100">100m</option>
+                    <option value="200">200m</option>
+                    <option value="400">400m</option>
+                    <option value="800">800m</option>
+                    <option value="1500">1500m</option>
+                </select>
+            </div>
+            <div class="ui-field-contain">
+                <label for="avanEstilo">Estilo:</label>
+                <select id="avanEstilo">
+                    <option value="0">Todos</option>
+                    <option value="MARIPOSA">MARIPOSA</option>
+                    <option value="ESPALDA">ESPALDA</option>
+                    <option value="BRAZA">BRAZA</option>
+                    <option value="LIBRE">LIBRE</option>
+                    <option value="ESTILOS">ESTILOS</option>
+                </select>
+            </div>
+            <div class="ui-field-contain">
+                <label for="avanGenero">Genero:</label>
+                <select id="avanGenero">
+                    <option value="0">Todos</option>
+                    <option value="MASCULINO">MASCULINO</option>
+                    <option value="FEMENINO">FEMENINO</option>
+                    <option value="MIXTO">MIXTO</option>
+                </select>
+            </div>
+            <div class="ui-field-contain">
+                <label for="avanAnoIni">Nacidos desde:</label>
+                <select id="avanAnoIni">
+                    <option value="0">Todos</option>
+                    % for i in range(anoActual - 105, anoActual - 19):
+                    <option value="${i}">${i}</option>
+                    % endfor
+                </select>
+            </div>
+            <div class="ui-field-contain">
+                <label for="avanAnoFin">Nacidos hasta (no se incluye):</label>
+                <select id="avanAnoFin">
+                    <option value="0">Todos</option>
+                    % for i in range(anoActual - 105, anoActual - 19):
+                    <option value="${i + 1}">${i + 1}</option>
+                    % endfor
+                </select>
+            </div>
+            <button id="avanBuscar">Buscar</button>
+        </div>
+    </div>
+</div>
+<br/>
+<div id="contenido">
+    <table data-role="table" id="result-table" data-mode="columntoggle" class="ui-responsive table-stroke">
+    </table>
+</div>
+</body>
+</html>
