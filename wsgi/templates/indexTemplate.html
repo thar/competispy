@@ -15,11 +15,11 @@
                 .click(function (event) {
                     $.get("search",
                         {
-                            distancia: $("#distancia").val(),
-                            estilo: $("#estilo").val(),
-                            genero: $("#genero").val(),
-                            categoria: $("#categoria").val(),
-                            campeonato: $("#campeonato").val()
+                            distance: $("#distancia").val(),
+                            style: $("#estilo").val(),
+                            gender: $("#genero").val(),
+                            category: $("#categoria").val(),
+                            championship: $("#campeonato").val()
                         },
                         function (data) {
                             $("#result-table").empty().html(data).enhanceWithin().table("refresh");
@@ -31,7 +31,7 @@
                 .click(function (event) {
                     if (!$('#licenciaActiva').prop('checked')) {
                         $.get("searchNombre",
-                            {nombre: $("#inputNadadorLicencia").val(), campeonato: $("#campeonato").val()},
+                            {competitor_name: $("#inputNadadorLicencia").val(), championship: $("#campeonato").val()},
                             function (data) {
                                 $("#result-table").empty().html(data).enhanceWithin().table("refresh");
                             },
@@ -39,7 +39,10 @@
                         );
                     } else {
                         $.get("searchLicencia",
-                            {licencia: $("#inputNadadorLicencia").val(), campeonato: $("#campeonato").val()},
+                            {
+                                competitor_license_number: $("#inputNadadorLicencia").val(),
+                                championship: $("#campeonato").val()
+                            },
                             function (data) {
                                 $("#result-table").empty().html(data).enhanceWithin().table("refresh");
                             },
@@ -52,12 +55,12 @@
                     $.get("searchAvanzado",
                         {
                             club: $("#avanClub").val(),
-                            distancia: $("#avanDistancia").val(),
-                            estilo: $("#avanEstilo").val(),
-                            genero: $("#avanGenero").val(),
-                            anoInicial: $("#avanAnoIni").val(),
-                            anoFinal: $("    #avanAnoFin").val(),
-                            campeonato: $("#campeonato").val()
+                            distance: $("#avanDistancia").val(),
+                            style: $("#avanEstilo").val(),
+                            gender: $("#avanGenero").val(),
+                            start_born_year: $("#avanAnoIni").val(),
+                            end_born_year: $("    #avanAnoFin").val(),
+                            championship: $("#campeonato").val()
                         },
                         function (data) {
                             $("#result-table").empty().html(data).enhanceWithin().table("refresh");
