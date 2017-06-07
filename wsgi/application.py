@@ -52,8 +52,9 @@ def get_years_in_category(category):
 class Root(object):
     @cherrypy.expose
     def index(self):
+        championships = individual_competitors.find().distinct("evento")
         index_template = templates_lookup.get_template("indexTemplate.html")
-        return index_template.render(anoActual=actual_year)
+        return index_template.render(anoActual=actual_year, championships=championships)
 
     @cherrypy.expose
     def search(self, distance, style, gender, category, championship):

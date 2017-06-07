@@ -92,12 +92,9 @@
             <div class="ui-field-contain">
                 <label for="campeonato">Campeonato:</label>
                 <select id="campeonato">
-                    <option value="XIII CTO. ANDALUCIA OPEN DE VERANO MASTER">XIII cto. Andalucía Open Máster Verano
-                    </option>
-                    <option value="cto. españa invierno master 2017">Cto. España Invierno Master 2017</option>
-                    <option value="cto. españa verano master 2016">Cto. España Verano Master 2016</option>
-                    <option value="cto. madrid verano master 2016">Cto. Madrid Verano Master 2016</option>
-                    <option value="XII CTO. ANDALUCÍA OPEN MÁSTER VERANO">XII cto. Andalucía Open Máster Verano</option>
+                    % for championship in championships:
+                    <option value="${championship}">${championship}</option>
+                    % endfor
                 </select>
             </div>
         </div>
