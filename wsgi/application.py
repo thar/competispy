@@ -8,6 +8,7 @@ import cherrypy
 from pymongo import MongoClient
 import pymongo
 from mako.lookup import TemplateLookup
+import json
 
 current_directory = os.path.dirname(os.path.realpath(__file__))
 sys.path.append(current_directory)
@@ -21,9 +22,16 @@ if cherrypy.__version__.startswith('3.0') and cherrypy.engine.state == 0:
 templates_lookup = TemplateLookup(directories=[current_directory + '/templates'], output_encoding='utf-8',
                                   encoding_errors='replace')
 
-client = MongoClient(os.environ['OPENSHIFT_MONGODB_DB_HOST']+':'+os.environ['OPENSHIFT_MONGODB_DB_PORT'])
-client.db.authenticate(os.environ['OPENSHIFT_MONGODB_DB_USERNAME'], os.environ['OPENSHIFT_MONGODB_DB_PASSWORD'],
-                       source='competispy')
+with open(current_directory + '/default_database_keys') as f:
+    default_database_keys = json.loads(f.read())
+
+mongo_host = os.getenv('OPENSHIFT_MONGODB_DB_HOST', default_database_keys['MONGODB_DB_HOST'])
+mongo_port = os.getenv('OPENSHIFT_MONGODB_DB_PORT', default_database_keys['MONGODB_DB_PORT'])
+mongo_user = os.getenv('OPENSHIFT_MONGODB_DB_USERNAME', default_database_keys['MONGODB_DB_USERNAME'])
+mongo_pass = os.getenv('OPENSHIFT_MONGODB_DB_PASSWORD', default_database_keys['MONGODB_DB_PASSWORD'])
+
+client = MongoClient(mongo_host + ':' + mongo_port)
+client.db.authenticate(mongo_user, mongo_pass, source=default_database_keys['SOURCE'])
 
 db = client.competispy
 nadadores = db.nadadores
@@ -133,3 +141,5 @@ class Root(object):
 
 application = cherrypy.Application(Root(), script_name=None, config=None)
 
+if __name__ == '__main__':
+    cherrypy.quickstart(Root())
