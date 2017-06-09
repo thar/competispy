@@ -1,5 +1,6 @@
 # -*- coding: UTF-8 -*-
 import sys
+sys.stdout = sys.stderr
 import os
 import re
 import atexit
@@ -7,8 +8,8 @@ import cherrypy
 import pymongo
 from mako.lookup import TemplateLookup
 import json
+from bson.son import SON
 
-sys.stdout = sys.stderr
 current_directory = os.path.dirname(os.path.realpath(__file__))
 sys.path.append(current_directory)
 
@@ -53,6 +54,15 @@ class Root(object):
     @cherrypy.expose
     def index(self):
         championships = individual_competitors.find().distinct("evento")
+        pipeline = [
+            {"$group": {"_id": {"evento": "$evento", "fecha": "$fecha"}}},
+            {"$sort": SON([("_id.fecha", -1)])}
+        ]
+        pipeline_result = individual_competitors.aggregate(pipeline)
+        if type(pipeline_result) == pymongo.command_cursor.CommandCursor:
+            championships = [event['_id']['evento'] for event in list(pipeline_result)]
+        else:
+            championships = [event['_id']['evento'] for event in pipeline_result['result']]
         index_template = templates_lookup.get_template("indexTemplate.html")
         return index_template.render(anoActual=actual_year, championships=championships)
 
