@@ -48,3 +48,7 @@ Adding a championship to the database
 -------------------
 
 TODO!!
+The following API seems to be a perfect solution for pdf parsing:
+http://pdfextractoronline.com/tabex-pdf-api/
+
+Its TXT output is readable by the importer

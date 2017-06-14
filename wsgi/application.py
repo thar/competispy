@@ -1,5 +1,7 @@
 # -*- coding: UTF-8 -*-
 import sys
+import traceback
+
 sys.stdout = sys.stderr
 import os
 import re
@@ -50,6 +52,14 @@ def get_years_in_category(category):
     return [actual_year - category - i for i in range(5)]
 
 
+def print_exception(e):
+    print 'error: ', e
+    print '-' * 60
+    traceback.print_exc(file=sys.stdout)
+    print '-' * 60
+    return ""
+
+
 class Root(object):
     @cherrypy.expose
     def index(self):
@@ -68,29 +78,33 @@ class Root(object):
 
     @cherrypy.expose
     def search(self, distance, style, gender, category, championship):
-        if not 'x' in distance:
-            distance = int(distance)
-            category = int(category)
-            db_query_result = individual_competitors.find(
-                {'distancia': distance, 'estilo': style, 'genero': gender,
-                 'nacimiento': {'$in': get_years_in_category(category)},
-                 'evento': {'$regex': championship, '$options': 'i'}}).sort(
-                [("tiempoInscripcion", 1), ("serie", pymongo.DESCENDING), ("posicionInicial", 1)])
-            return templates_lookup.get_template("eventTableTemplate.mako").render(nadadores=db_query_result,
-                                                                                   puntos=points_per_position)
-        else:
-            if type(category) == int:
-                categories = [category, '+' + str(category)]
-            elif category.startswith('+'):
-                categories = [int(category.strip('+')), category]
+        try:
+            if not 'x' in distance:
+                distance = int(distance)
+                category = int(category)
+                db_query_result = individual_competitors.find(
+                    {'distancia': distance, 'estilo': style, 'genero': gender,
+                     'nacimiento': {'$in': get_years_in_category(category)},
+                     'evento': {'$regex': championship, '$options': 'i'}}).sort(
+                    [("tiempoInscripcion", 1), ("serie", pymongo.DESCENDING), ("posicionInicial", 1)])
+                return templates_lookup.get_template("eventTableTemplate.mako").render(nadadores=db_query_result,
+                                                                                       puntos=points_per_position)
             else:
-                categories = [int(category), '+' + category]
-            query = {'distancia': distance, 'estilo': style, 'genero': gender, 'categoria': {'$in': categories},
-                     'evento': {'$regex': championship, '$options': 'i'}}
-            db_query_result = relay_competitors.find(query).sort([("serie", pymongo.DESCENDING),
-                                                                  ("tiempoInscripcion", 1), ("posicionInicial", 1)])
-            return templates_lookup.get_template("eventRelayTableTemplate.mako").render(relevos=db_query_result,
-                                                                                        puntos=points_per_position)
+                if type(category) == int:
+                    categories = [category, '+' + str(category)]
+                elif category.startswith('+'):
+                    categories = [int(category.strip('+')), category]
+                else:
+                    categories = [int(category), '+' + category]
+                query = {'distancia': distance, 'estilo': style, 'genero': gender, 'categoria': {'$in': categories},
+                         'evento': {'$regex': championship, '$options': 'i'}}
+                db_query_result = relay_competitors.find(query).sort([("serie", pymongo.DESCENDING),
+                                                                      ("tiempoInscripcion", 1), ("posicionInicial", 1)])
+                return templates_lookup.get_template("eventRelayTableTemplate.mako").render(relevos=db_query_result,
+                                                                                            puntos=points_per_position)
+        except Exception, e:
+            print_exception(e)
+            return ""
 
     @cherrypy.expose
     def searchNombre(self, competitor_name, championship):
@@ -102,7 +116,7 @@ class Root(object):
                                                            'evento': {'$regex': championship, '$options': 'i'}})
             return templates_lookup.get_template("swimmerTableTemplate.mako").render(nadadores=db_query_result)
         except Exception, e:
-            print 'error: ', e
+            print_exception(e)
             return ""
 
     @cherrypy.expose
@@ -115,7 +129,7 @@ class Root(object):
                                                            'evento': {'$regex': championship, '$options': 'i'}})
             return templates_lookup.get_template("swimmerTableTemplate.mako").render(nadadores=db_query_result)
         except Exception, e:
-            print 'error: ', e
+            print_exception(e)
             return ""
 
     @cherrypy.expose
@@ -139,14 +153,14 @@ class Root(object):
             if end_born_year != '0':
                 search_query_filters['nacimiento']["$lt"] = int(end_born_year)
         except Exception, e:
-            print 'error: ', e
+            print_exception(e)
             return ""
 
         try:
             db_query_result = individual_competitors.find(search_query_filters)
             return templates_lookup.get_template("swimmerTableTemplate.mako").render(nadadores=db_query_result)
         except Exception, e:
-            print 'error: ', e
+            print_exception(e)
             return ""
 
 application = cherrypy.Application(Root(), script_name=None, config=None)

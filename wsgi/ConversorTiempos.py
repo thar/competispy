@@ -111,7 +111,6 @@ class ConversorTiempos:
 
     @staticmethod
     def convertir_a_tiempo_database(entrada_base_datos):
-        print entrada_base_datos
         entrada_base_datos['tiempoInscripcion'] += ConversorTiempos.obtener_modificacion_tiempo(entrada_base_datos)
 
     @staticmethod

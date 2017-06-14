@@ -7,17 +7,23 @@ from DatabaseConnector import get_nadadores_db, get_relevos_db
 nadadores = get_nadadores_db()
 relevos = get_relevos_db()
 
-anoActual = 2017
+'''
+import requests
+files = {'file': open('INSCRITOS_MASTER_VERANO_2017.pdf', 'rb')}
+url = 'http://api2.pdfextractoronline.com:8089/tab2ex2/api'
+payload = {'tab2exkey': 'XXXXXXXXXX', 'fileName': 'INSCRITOS_MASTER_VERANO_2017.pdf',
+           'recognitionMethod': 'auto', 'outputFormat': 'TXT'}
+r = requests.post(url, files=files, params=payload)
+r.text.encode('utf-8')
+'''
 
+f = open('cto_madrid.txt')
 
-def getAnosCategoria(categoria):
-    return [anoActual - categoria - i for i in range(5)]
+evento = "XIII OPEN MASTER VERANO C.MADRID".upper()
+fecha_evento = datetime.strptime("24/06/2017", "%d/%m/%Y")
 
-
-f = open('INSCRITOS_MASTER_VERANO_2017.txt')
-
-evento = "XIII CTO. ANDALUCIA OPEN DE VERANO MASTER".upper()
-fecha_evento = datetime.strptime("09/06/2017", "%d/%m/%Y")
+nadadores.remove({'evento': evento})
+relevos.remove({'evento': evento})
 
 
 class CompetitorParser(object):
@@ -25,17 +31,16 @@ class CompetitorParser(object):
         self.regular_expression = re.compile(regular_expression)
         self.prueba_parser = None
 
-    def specific_match(self, match_competitor):
+    def specific_match(self, match_competitor, competitor_data):
         raise NotImplemented
 
     def match(self, line):
         match_competitor = self.regular_expression.match(line)
         if match_competitor and self.prueba_parser:
             competitor_data = {}
-            competitor_data['posicionInicial'] = int(match_competitor.group('puesto'))
-            competitor_data['serie'] = 0
+            competitor_data['serie'] = self.prueba_parser.serie
             competitor_data['calle'] = 0
-            competitor_data['jornada'] = 0
+            competitor_data['jornada'] = self.prueba_parser.jornada
             competitor_data['prueba'] = self.prueba_parser.prueba
             competitor_data['distancia'] = self.prueba_parser.distancia
             competitor_data['estilo'] = self.prueba_parser.estilo
@@ -48,22 +53,32 @@ class CompetitorParser(object):
             competitor_data['piscinaInscripcion'] = int(match_competitor.group('piscina')[0:2])
             competitor_data['cronometrajeInscripcion'] = match_competitor.group('piscina').strip()[-1].upper()
             ConversorTiempos.convertir_a_tiempo_database(competitor_data)
-            fecha = match_competitor.group('fecha')
-            if fecha:
-                competitor_data['fechaInscripcion'] = fecha.strip()
-            else:
-                competitor_data['fechaInscripcion'] = ''
-            lugar = match_competitor.group('lugar')
-            if lugar:
-                competitor_data['lugarInscripcion'] = lugar.strip()
-            else:
-                competitor_data['lugarInscripcion'] = ''
 
             competitor_data['evento'] = evento.upper()
             competitor_data['fecha'] = fecha_evento
 
-            competitor_data.update(self.specific_match(match_competitor))
+            self.specific_match(match_competitor, competitor_data)
             self.prueba_parser.add_competitor_data(competitor_data)
+
+    def update_inscription_time_data(self, competitor_data, match_competitor):
+        competitor_data['posicionInicial'] = int(match_competitor.group('puesto'))
+        fecha = match_competitor.group('fecha')
+        if fecha:
+            competitor_data['fechaInscripcion'] = fecha.strip()
+        else:
+            competitor_data['fechaInscripcion'] = ''
+        lugar = match_competitor.group('lugar')
+        if lugar:
+            competitor_data['lugarInscripcion'] = lugar.strip()
+        else:
+            competitor_data['lugarInscripcion'] = ''
+
+    def update_inscription_time_data_from_db(self, competitor_data, collection):
+        competitor_pre = collection.find_one({'distancia': competitor_data['distancia'], 'estilo': competitor_data['estilo'], 'genero': competitor_data['genero'], 'licencia': competitor_data['licencia'], 'evento': competitor_data['evento']})
+        if competitor_pre:
+            competitor_data['fechaInscripcion'] = competitor_pre['fechaInscripcion']
+            competitor_data['lugarInscripcion'] = competitor_pre['lugarInscripcion']
+            competitor_data['posicionInicial'] = competitor_pre['posicionInicial']
 
     def set_prueba_parser(self, prueba_parser):
         self.prueba_parser = prueba_parser
@@ -100,8 +115,9 @@ class NadadorParser(CompetitorParser):
         super(NadadorParser, self).__init__(
             '\s*(?P<puesto>\d+)\s+(?P<licencia>\S+)\s+(?P<nombre>(\S+ )+)\s*(?P<year>\d{4})\s+(?P<club>(\S+ )+)\s*(?P<marca>\:?(\d{1,2}:)?\d{1,2}\.\d{1,2})\s+(?P<piscina>\d{2}.{2}[ME])(\s+(?P<fecha>\d{2}/\d{2}/\d{4})\s+(?P<lugar>.*))?')
 
-    def specific_match(self, match_competitor):
-        return {'nacimiento': int(match_competitor.group('year'))}
+    def specific_match(self, match_competitor, competitor_data):
+        self.update_inscription_time_data(competitor_data, match_competitor)
+        competitor_data['nacimiento'] = int(match_competitor.group('year'))
 
 
 class RelevoParser(CompetitorParser):
@@ -109,17 +125,41 @@ class RelevoParser(CompetitorParser):
         super(RelevoParser, self).__init__(
             '\s*(?P<puesto>\d+)\s+(?P<licencia>\S+)\s+(?P<nombre>(\S+ )+)\s*(?P<year>\+\d{3})\s+(?P<club>(\S+ )+)\s*(?P<marca>(\d{1,2}:)?\d{1,2}\.\d{1,2})\s+(?P<piscina>\d{2}.{2}[ME])(\s+(?P<fecha>\d{2}/\d{2}/\d{4})\s+(?P<lugar>.*))?')
 
-    def specific_match(self, match_competitor):
-        return {'categoria': match_competitor.group('year').strip()}
+    def specific_match(self, match_competitor, competitor_data):
+        self.update_inscription_time_data(competitor_data, match_competitor)
+        competitor_data['categoria'] = match_competitor.group('year').strip()
+
+
+class NadadorFinalParser(CompetitorParser):
+    def __init__(self):
+        super(NadadorFinalParser, self).__init__(
+            '\s+(?P<calle>\d+( [DI])?)\s+(?P<licencia>\S+)\s+(?P<nombre>(\S+ )+)\s*(?P<year>\d{4})\s+(?P<club>(\S+ )+)\s*(?P<marca>((\d{1,2}:)?\d{1,2}\.\d{1,2})|9:59:59.59)\s+(?P<piscina>\d{2}.*[ME])$')
+
+    def specific_match(self, match_competitor, competitor_data):
+        self.update_inscription_time_data_from_db(competitor_data, nadadores)
+        competitor_data['calle'] = int(match_competitor.group('calle'))
+        competitor_data['nacimiento'] = int(match_competitor.group('year'))
+
+
+class RelevoFinalParser(CompetitorParser):
+    def __init__(self):
+        super(RelevoFinalParser, self).__init__(
+            '\s+(?P<calle>\d+)\s+(?P<licencia>\S+)\s+(?P<nombre>(\S+ )+)\s*(?P<year>\+\d{2,3})\s*(?P<club>(\S+ )+)\s*(?P<marca>(\d{1,2}:)?\d{1,2}\.\d{1,2})\s+(?P<piscina>\d{2}.*[ME])$')
+
+    def specific_match(self, match_competitor, competitor_data):
+        self.update_inscription_time_data_from_db(competitor_data, relevos)
+        competitor_data['calle'] = int(match_competitor.group('calle'))
+        competitor_data['categoria'] = match_competitor.group('year').strip()
 
 
 class PruebaParser(object):
-    def __init__(self, regular_expression):
-        self.regular_expression = re.compile(regular_expression)
+    def __init__(self):
         self.prueba = None
         self.distancia = None
         self.estilo = None
         self.genero = None
+        self.serie = 0
+        self.jornada = 0
         self.competitor_parsers = []
         self.competitors_data = []
         self.db = None
@@ -147,12 +187,31 @@ class PruebaParser(object):
                 self.db.insert(competitor)
 
 
-class PruebaNadadores(PruebaParser):
+class PruebaConSerieParser(PruebaParser):
     def __init__(self):
-        super(PruebaNadadores, self).__init__(
-            '\s*(?P<numero>\d+)\s+-\s+(?P<distancia>\S+)\s+m\.\s+(?P<estilo>\w+) (?P<genero>\w+)')
+        super(PruebaConSerieParser, self).__init__()
+        self.serie_re = re.compile('\s*SERIE\s+(?P<serie>\d+)')
 
     def match(self, line):
+        match_prueba_serie = self.serie_re.match(line)
+        if match_prueba_serie:
+            self.serie = int(match_prueba_serie.group('serie'))
+            return False
+        else:
+            return self._match(line)
+
+    def _match(self, line):
+        raise NotImplemented
+
+
+
+class PruebaNadadores(PruebaConSerieParser):
+    def __init__(self):
+        super(PruebaNadadores, self).__init__()
+        self.regular_expression = re.compile(
+            '\s*(?P<numero>\d+)\s+(-\s+)?(?P<distancia>\S+)\s+m\.\s+(?P<estilo>\w+) (?P<genero>\w+)')
+
+    def _match(self, line):
         match_prueba = self.regular_expression.match(line)
         if match_prueba:
             print 'match prueba de nadadores!'
@@ -164,12 +223,13 @@ class PruebaNadadores(PruebaParser):
         return False
 
 
-class PruebaRelevos(PruebaParser):
+class PruebaRelevos(PruebaConSerieParser):
     def __init__(self):
-        super(PruebaRelevos, self).__init__(
-            '\s*(?P<numero>\d+)\s+-\s+4x(?P<distancia>\S+)\s+(?P<estilo>\w+) (?P<genero>\w+)')
+        super(PruebaRelevos, self).__init__()
+        self.regular_expression = re.compile(
+            '\s*(?P<numero>\d+)\s+((-\s)?)+4x(?P<distancia>\S+)\s+(?P<estilo>\w+) (?P<genero>\w+)')
 
-    def match(self, line):
+    def _match(self, line):
         match_prueba_relevo = self.regular_expression.match(line)
         if match_prueba_relevo:
             print 'match prueba de relevos!'
@@ -184,9 +244,11 @@ class PruebaRelevos(PruebaParser):
 parseadores_pruebas = []
 parseadores_pruebas.append(PruebaNadadores())
 parseadores_pruebas[0].add_competitor_parser(NadadorParser())
+#parseadores_pruebas[0].add_competitor_parser(NadadorFinalParser())
 parseadores_pruebas[0].set_db(nadadores)
 parseadores_pruebas.append(PruebaRelevos())
 parseadores_pruebas[1].add_competitor_parser(RelevoParser())
+#parseadores_pruebas[1].add_competitor_parser(RelevoFinalParser())
 parseadores_pruebas[1].set_db(relevos)
 
 parseador_prueba_actual = None
