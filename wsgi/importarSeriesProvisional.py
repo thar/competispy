@@ -22,9 +22,6 @@ f = open('cto_madrid.txt')
 evento = "XIII OPEN MASTER VERANO C.MADRID".upper()
 fecha_evento = datetime.strptime("24/06/2017", "%d/%m/%Y")
 
-nadadores.remove({'evento': evento})
-relevos.remove({'evento': evento})
-
 
 class CompetitorParser(object):
     def __init__(self, regular_expression):
@@ -184,13 +181,17 @@ class PruebaParser(object):
     def store(self):
         if self.db:
             for competitor in self.competitors_data:
-                self.db.insert(competitor)
+                existent_competitor = self.db.find_one(competitor)
+                if existent_competitor:
+                    self.db.update(competitor)
+                else:
+                    self.db.insert(competitor)
 
 
 class PruebaConSerieParser(PruebaParser):
     def __init__(self):
         super(PruebaConSerieParser, self).__init__()
-        self.serie_re = re.compile('\s*SERIE\s+(?P<serie>\d+)')
+        self.serie_re = re.compile('\s*((FINAL)|(SERIE))\s+(?P<serie>\d+)')
 
     def match(self, line):
         match_prueba_serie = self.serie_re.match(line)
@@ -243,12 +244,12 @@ class PruebaRelevos(PruebaConSerieParser):
 
 parseadores_pruebas = []
 parseadores_pruebas.append(PruebaNadadores())
-parseadores_pruebas[0].add_competitor_parser(NadadorParser())
-#parseadores_pruebas[0].add_competitor_parser(NadadorFinalParser())
+#parseadores_pruebas[0].add_competitor_parser(NadadorParser())
+parseadores_pruebas[0].add_competitor_parser(NadadorFinalParser())
 parseadores_pruebas[0].set_db(nadadores)
 parseadores_pruebas.append(PruebaRelevos())
-parseadores_pruebas[1].add_competitor_parser(RelevoParser())
-#parseadores_pruebas[1].add_competitor_parser(RelevoFinalParser())
+#parseadores_pruebas[1].add_competitor_parser(RelevoParser())
+parseadores_pruebas[1].add_competitor_parser(RelevoFinalParser())
 parseadores_pruebas[1].set_db(relevos)
 
 parseador_prueba_actual = None
@@ -265,6 +266,9 @@ for l in f:
         continue
 
     parseador_prueba_actual.match_competitor(l)
+
+nadadores.remove({'evento': evento})
+relevos.remove({'evento': evento})
 
 for parserador_prueba in parseadores_pruebas:
     parserador_prueba.store()
