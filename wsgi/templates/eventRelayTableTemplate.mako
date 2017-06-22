@@ -18,7 +18,7 @@
       % for relevo in relevos:
           <%
               ConversorTiempos.convertir_a_tiempo_inscripcion_25(relevo)
-              if relevo['fechaInscripcion']:
+              if 'fechaInscripcion' in relevo and relevo['fechaInscripcion']:
                   try:
                       relevo['fechaInscripcion'] = relevo['fechaInscripcion'].strftime('%d-%m-%Y')
                   except Exception, e:

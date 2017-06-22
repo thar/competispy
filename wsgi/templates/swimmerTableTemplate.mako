@@ -22,7 +22,7 @@
       % for nadador in nadadores:
           <%
               ConversorTiempos.convertir_a_tiempo_inscripcion(nadador)
-              if nadador['fechaInscripcion']:
+              if 'fechaInscripcion' in nadador and nadador['fechaInscripcion']:
                   try:
                       nadador['fechaInscripcion'] = nadador['fechaInscripcion'].strftime('%d-%m-%Y')
                   except Exception, e:
